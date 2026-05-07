@@ -8,6 +8,10 @@ const resumeSchema = new mongoose.Schema({
   resumeData: {
     type: Object,
     required: true,
+  },
+  selectedTemplate: {
+    type: String,
+    default: "modern"
   }
 }, { timestamps: true });
 

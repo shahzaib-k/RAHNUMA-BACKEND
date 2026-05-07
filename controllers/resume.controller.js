@@ -6,7 +6,7 @@ import { calculateAtsScore } from "../services/atsChecker.js";
 export const generateResume = async (req, res) => {
   try {
     const userId = req.user?.id || req.body.userId || "guest";
-    const { name, education, skills, experience, targetRole, jobDescription } = req.body;
+    const { name, education, skills, experience, targetRole, jobDescription, selectedTemplate } = req.body;
 
     if (!name || !education || !skills || !targetRole) {
       return res.status(400).json({ error: "Missing required fields: name, education, skills, targetRole" });
@@ -21,7 +21,7 @@ export const generateResume = async (req, res) => {
       jobDescription
     });
 
-    const newResume = new Resume({ userId, resumeData: generatedData });
+    const newResume = new Resume({ userId, resumeData: generatedData, selectedTemplate: selectedTemplate || "modern" });
     await newResume.save();
 
     res.status(200).json({ 

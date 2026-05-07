@@ -11,7 +11,11 @@ export const getDashboardIntelligence = async (req, res) => {
     const personality = await PersonalityResult.findOne({ userId }).sort({ createdAt: -1 });
 
     if (!cognitive || !personality) {
-      return res.status(404).json({ message: "Incomplete assessment data. Both cognitive and personality tests are required." });
+      const testsCompleted = (cognitive ? 1 : 0) + (personality ? 1 : 0);
+      return res.status(404).json({ 
+        message: "Incomplete assessment data. Both cognitive and personality tests are required.",
+        testsCompleted
+      });
     }
 
     const { logical, verbal, quantitative } = cognitive;

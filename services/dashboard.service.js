@@ -23,29 +23,6 @@ export const generateAptitudeSummary = (logical, verbal, quantitative) => {
 };
 
 export const generateAiInsight = async (scores, topCareers) => {
-  const prompt = `You are a professional career counselor. Based on the following user assessment scores and recommended careers, write exactly one professional, personalized paragraph (3-4 sentences). Explain their dominant strengths, behavioral tendencies, what kind of careers fit them, and why these recommendations were generated.
-
-Scores:
-- Logical: ${scores.logical}%
-- Verbal: ${scores.verbal}%
-- Quantitative: ${scores.quantitative}%
-- Openness: ${scores.openness}%
-- Conscientiousness: ${scores.conscientiousness}%
-- Extraversion: ${scores.extraversion}%
-- Agreeableness: ${scores.agreeableness}%
-- Neuroticism: ${scores.neuroticism}%
-
-Top Recommended Careers:
-${topCareers.map(c => c.career).join(", ")}
-
-Output only the paragraph, nothing else.`;
-
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const response = await model.generateContent(prompt);
-    return response.response.text().trim();
-  } catch (error) {
-    console.error("Error generating AI insight:", error);
-    return "Based on your combined assessment, you possess a solid foundation for careers that leverage your unique mix of problem-solving skills and personality traits.";
-  }
+  // AI Personalized Insight disabled per request. Returning default message directly.
+  return "Based on your combined assessment, you possess a solid foundation for careers that leverage your unique mix of problem-solving skills and personality traits.";
 };
