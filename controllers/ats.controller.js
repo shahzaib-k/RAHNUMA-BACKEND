@@ -5,8 +5,23 @@ const pdfParse = require("pdf-parse");
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import AtsResult from "../models/AtsResult.js";
 
-// Initialize Gemini AI Client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const cleanupUploadedFile = (filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
+
+const parseGeminiJson = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("AI response did not contain valid JSON.");
+    }
+    return JSON.parse(jsonMatch[0]);
+  }
+};
 
 export const uploadAndAnalyze = async (req, res) => {
   try {
@@ -28,15 +43,21 @@ export const uploadAndAnalyze = async (req, res) => {
     } else if (req.file.mimetype === "text/plain") {
       resumeText = fs.readFileSync(req.file.path, "utf-8");
     } else {
-      fs.unlinkSync(req.file.path);
+      cleanupUploadedFile(req.file.path);
       return res.status(400).json({ message: "Invalid file format. Please upload PDF or TXT." });
     }
 
     // Cleanup local cache from multer
-    fs.unlinkSync(req.file.path);
+    cleanupUploadedFile(req.file.path);
 
     if (!resumeText || resumeText.trim().length === 0) {
       return res.status(400).json({ message: "Could not extract text from the resume." });
+    }
+
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "your_gemini_api_key_here") {
+      return res.status(503).json({
+        message: "ATS analyzer is not configured. Please add a valid GEMINI_API_KEY in backend/.env.",
+      });
     }
 
     // Performance Optimization: Cache Check
@@ -85,14 +106,19 @@ Evaluation Criteria:
 Keep the response concise, structured, and professional.
 Do NOT include any explanation outside JSON.`;
 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash", 
+      model: "gemini-2.5-flash", 
       generationConfig: { responseMimeType: "application/json" } 
     });
 
     const result = await model.generateContent(prompt);
     const aiResponse = result.response.text();
-    const parsedData = JSON.parse(aiResponse);
+    const parsedData = parseGeminiJson(aiResponse);
+
+    if (typeof parsedData.ats_score !== "number") {
+      return res.status(502).json({ message: "AI analyzer returned an invalid ATS score. Please try again." });
+    }
 
     // Storing output directly based on required flow
     const atsRecord = new AtsResult({
@@ -106,6 +132,7 @@ Do NOT include any explanation outside JSON.`;
     res.status(200).json(atsRecord);
 
   } catch (error) {
+    cleanupUploadedFile(req.file?.path);
     console.error("ATS upload error:", error);
     res.status(500).json({ message: "Error analyzing resume", error: error.message });
   }
