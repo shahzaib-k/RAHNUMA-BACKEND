@@ -1,4 +1,6 @@
-const questions = [
+import CognitiveQuestion from "../models/CognitiveQuestion.js";
+
+const seedQuestions = [
   { id: 1, type: "logical", question: "What comes next in the sequence: 2, 4, 8, 16, ?", options: ["18", "20", "32", "24"], answer: "32" },
   { id: 2, type: "verbal", question: "Choose the synonym of 'happy'.", options: ["Sad", "Joyful", "Angry", "Tired"], answer: "Joyful" },
   { id: 3, type: "quantitative", question: "Solve: 5 * (3 + 2)", options: ["15", "25", "20", "30"], answer: "25" },
@@ -21,8 +23,21 @@ const questions = [
   { id: 20, type: "verbal", question: "Which is a synonym for 'Abundant'?", options: ["Scarce", "Plentiful", "Rare", "Sparse"], answer: "Plentiful" }
 ];
 
-export const getQuestions = (req, res) => {
-  res.status(200).json(questions);
+export const getQuestions = async (req, res) => {
+  try {
+    const count = await CognitiveQuestion.countDocuments();
+    if (count === 0) {
+      await CognitiveQuestion.insertMany(seedQuestions);
+      console.log("Database seeded with cognitive (aptitude) questions.");
+    }
+
+    // Exclude the 'answer' field when sending to the frontend to prevent cheating!
+    const questions = await CognitiveQuestion.find({}, { answer: 0, _id: 0, __v: 0 });
+    res.status(200).json(questions);
+  } catch (err) {
+    console.error("Failed to fetch cognitive questions:", err);
+    res.status(500).json({ error: "Failed to fetch questions" });
+  }
 };
 
 export const submitAnswers = async (req, res) => {
@@ -33,34 +48,31 @@ export const submitAnswers = async (req, res) => {
     return res.status(400).json({ error: "Invalid answers format" });
   }
 
-  const categoryScores = { logical: 0, verbal: 0, quantitative: 0 };
-  const categoryTotals = { logical: 0, verbal: 0, quantitative: 0 };
-
-  // Determine total questions per category
-  questions.forEach(q => {
-    if (categoryTotals[q.type] !== undefined) categoryTotals[q.type]++;
-  });
-
-  userAnswers.forEach(ans => {
-    const q = questions.find(q => q.id === ans.id);
-    if (q && q.answer === ans.answer) {
-      score += 1; // 1 point per correct answer
-      if (categoryScores[q.type] !== undefined) categoryScores[q.type]++;
-    }
-  });
-
-  // Convert to percentages mapping dynamically
-  const logical = Math.round((categoryScores.logical / categoryTotals.logical) * 100) || 0;
-  const verbal = Math.round((categoryScores.verbal / categoryTotals.verbal) * 100) || 0;
-  const quantitative = Math.round((categoryScores.quantitative / categoryTotals.quantitative) * 100) || 0;
-
   try {
+    const questions = await CognitiveQuestion.find({});
+    
+    const categoryScores = { logical: 0, verbal: 0, quantitative: 0 };
+    const categoryTotals = { logical: 0, verbal: 0, quantitative: 0 };
+
+    // Determine total questions per category
+    questions.forEach(q => {
+      if (categoryTotals[q.type] !== undefined) categoryTotals[q.type]++;
+    });
+
+    userAnswers.forEach(ans => {
+      const q = questions.find(q => q.id === ans.id);
+      if (q && q.answer === ans.answer) {
+        score += 1; // 1 point per correct answer
+        if (categoryScores[q.type] !== undefined) categoryScores[q.type]++;
+      }
+    });
+
+    // Convert to percentages mapping dynamically
+    const logical = Math.round((categoryScores.logical / categoryTotals.logical) * 100) || 0;
+    const verbal = Math.round((categoryScores.verbal / categoryTotals.verbal) * 100) || 0;
+    const quantitative = Math.round((categoryScores.quantitative / categoryTotals.quantitative) * 100) || 0;
+
     if (userId) {
-      // Import inline to avoid circle dependencies or top-level bugs if needed, 
-      // but better to just use top-level import. Let's lazily import or assume it's imported.
-      // Wait, I need to add the import at the top of the file! 
-      // Let me import it dynamically or at the top. I'll just dynamically import it for simplicity 
-      // without needing to rewrite the top chunk.
       const { default: CognitiveResult } = await import("../models/CognitiveResult.js");
       const cognitiveResult = new CognitiveResult({
         userId,
@@ -70,9 +82,56 @@ export const submitAnswers = async (req, res) => {
       });
       await cognitiveResult.save();
     }
-  } catch (err) {
-    console.error("Failed to save cognitive result:", err);
-  }
 
-  res.status(200).json({ score, total: questions.length });
+    res.status(200).json({ score, total: questions.length });
+  } catch (err) {
+    console.error("Failed to submit cognitive answers:", err);
+    res.status(500).json({ error: "Failed to submit answers" });
+  }
 };
+
+// Admin Controllers
+export const getAllQuestionsAdmin = async (req, res) => {
+  try {
+    const questions = await CognitiveQuestion.find({});
+    res.status(200).json(questions);
+  } catch (err) {
+    console.error("Failed to fetch all cognitive questions for admin:", err);
+    res.status(500).json({ error: "Failed to fetch questions" });
+  }
+};
+
+export const addQuestion = async (req, res) => {
+  try {
+    const nextId = await CognitiveQuestion.findOne().sort('-id').select('id') || { id: 0 };
+    const newQuestion = new CognitiveQuestion({ ...req.body, id: nextId.id + 1 });
+    await newQuestion.save();
+    res.status(201).json(newQuestion);
+  } catch (err) {
+    console.error("Failed to add question:", err);
+    res.status(500).json({ error: "Failed to add question" });
+  }
+};
+
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedQuestion = await CognitiveQuestion.findByIdAndUpdate(id, req.body, { new: true });
+    res.status(200).json(updatedQuestion);
+  } catch (err) {
+    console.error("Failed to update question:", err);
+    res.status(500).json({ error: "Failed to update question" });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await CognitiveQuestion.findByIdAndDelete(id);
+    res.status(200).json({ message: "Question deleted successfully" });
+  } catch (err) {
+    console.error("Failed to delete question:", err);
+    res.status(500).json({ error: "Failed to delete question" });
+  }
+};
+

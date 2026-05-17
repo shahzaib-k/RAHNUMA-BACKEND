@@ -170,3 +170,47 @@ export const getResult = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// Admin Controllers
+export const getAllQuestionsAdmin = async (req, res) => {
+  try {
+    const questions = await PersonalityQuestion.find();
+    res.status(200).json(questions);
+  } catch (error) {
+    console.error("Error in getAllQuestionsAdmin:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const addQuestion = async (req, res) => {
+  try {
+    const newQuestion = new PersonalityQuestion(req.body);
+    await newQuestion.save();
+    res.status(201).json(newQuestion);
+  } catch (error) {
+    console.error("Error in addQuestion:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedQuestion = await PersonalityQuestion.findByIdAndUpdate(id, req.body, { new: true });
+    res.status(200).json(updatedQuestion);
+  } catch (error) {
+    console.error("Error in updateQuestion:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await PersonalityQuestion.findByIdAndDelete(id);
+    res.status(200).json({ message: "Question deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteQuestion:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
