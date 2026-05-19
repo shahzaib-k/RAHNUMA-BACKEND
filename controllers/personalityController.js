@@ -47,8 +47,8 @@ export const getQuestions = async (req, res) => {
       console.log("Database seeded with 25 personality questions.");
     }
     
-    // 2. Fetch up to 20 personality test questions
-    const questions = await PersonalityQuestion.find().limit(20);
+    // 2. Fetch up to 20 active personality test questions
+    const questions = await PersonalityQuestion.find({ isActive: true }).limit(20);
     
     // 3. Format response (map _id to id)
     const formattedQuestions = questions.map(q => ({

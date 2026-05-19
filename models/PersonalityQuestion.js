@@ -18,6 +18,10 @@ const personalityQuestionSchema = new mongoose.Schema({
     type: [Number],
     default: [1, 2, 3, 4, 5],
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
 });
 
 const PersonalityQuestion = mongoose.model("PersonalityQuestion", personalityQuestionSchema);

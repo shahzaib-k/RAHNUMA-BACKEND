@@ -22,6 +22,10 @@ const cognitiveQuestionSchema = new mongoose.Schema({
   answer: {
     type: String,
     required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 });
 
