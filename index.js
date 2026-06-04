@@ -22,7 +22,7 @@ app.use("/api", resumeRoute )
 app.use("/api/cognitive-test", cognitiveRoute )
 app.use("/api/personality", personalityRoutes )
 app.use("/api/recommendations", recommendationRoutes )
-app.use("/api/ats", atsRoutes )
+// app.use("/api/ats", atsRoutes )
 app.use("/api/dashboard", dashboardRoute )
 
 
