@@ -32,7 +32,7 @@ export const getQuestions = async (req, res) => {
     }
 
     // Exclude the 'answer' field when sending to the frontend to prevent cheating!
-    const questions = await CognitiveQuestion.find({ isActive: true }, { answer: 0, _id: 0, __v: 0 });
+    const questions = await CognitiveQuestion.find({ isActive: { $ne: false } }, { answer: 0, _id: 0, __v: 0 });
     res.status(200).json(questions);
   } catch (err) {
     console.error("Failed to fetch cognitive questions:", err);
@@ -49,7 +49,7 @@ export const submitAnswers = async (req, res) => {
   }
 
   try {
-    const questions = await CognitiveQuestion.find({ isActive: true });
+    const questions = await CognitiveQuestion.find({ isActive: { $ne: false } });
     
     const categoryScores = { logical: 0, verbal: 0, quantitative: 0 };
     const categoryTotals = { logical: 0, verbal: 0, quantitative: 0 };
