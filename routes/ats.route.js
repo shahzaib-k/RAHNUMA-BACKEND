@@ -2,16 +2,19 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import os from "os"; // <-- Import OS module
 import { uploadAndAnalyze, getAtsScore } from "../controllers/ats.controller.js";
 import { verifyToken } from "../utils/verifyToken.js";
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadDir = path.resolve(__dirname, "../uploads");
 
-fs.mkdirSync(uploadDir, { recursive: true });
+// Define upload directory pointing to the serverless-writable /tmp directory
+const uploadDir = path.join(os.tmpdir(), "uploads");
+
+// Ensure the directory exists dynamically at execution time
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const upload = multer({
   dest: uploadDir,
